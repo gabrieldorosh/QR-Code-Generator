@@ -1,4 +1,13 @@
-from patterns import add_finder_pattern, add_alignment_patterns, add_timing_pattern, add_dark_module, reserve_format_info
+from patterns import (
+    generate_pattern_matrix,
+    get_finder_pattern_positions,
+    get_alignment_pattern_positions,
+    place_matrix_in_positions,
+    add_separators,
+    add_timing_pattern, 
+    add_dark_module, 
+    reserve_format_info
+)
 
 # create empty QR matrix for given version with function patterns
 # calculates the size of qr code based on the version
@@ -10,16 +19,21 @@ def initialize_matrix(version: int) -> tuple[list[list[int]], list[list[bool]]]:
     else:
         raise ValueError("Unsupported version")
     
+    # create blank matrix and reserved
     matrix = [[None]*size for _ in range(size)]
     reserved = [[False]*size for _ in range(size)]
 
     # add finder patterns
-    add_finder_pattern(matrix, reserved, 0, 0)
-    add_finder_pattern(matrix, reserved, 0, size-7)
-    add_finder_pattern(matrix, reserved, size-7, 0)
+    finder_pattern_matrix = generate_pattern_matrix(7, 3)
+    finder_pattern_positions = get_finder_pattern_positions(size)
+    matrix, reserved = place_matrix_in_positions(matrix, finder_pattern_matrix, finder_pattern_positions, reserved)
+    
 
     # add alignment patterns (version 2)
-    add_alignment_patterns(matrix, reserved, version)
+    alignment_pattern_matrix = generate_pattern_matrix(5, 1)
+    alignment_pattern_positions = get_alignment_pattern_positions(version, size)
+    matrix, reserved = place_matrix_in_positions(matrix, alignment_pattern_matrix, alignment_pattern_positions, reserved)
+    add_separators(matrix, reserved)
 
     # add timing patterns
     add_timing_pattern(matrix, reserved)

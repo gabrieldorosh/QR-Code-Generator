@@ -1,49 +1,78 @@
-
-# draw finder pattern in top left corner
-def add_finder_pattern(matrix: list, reserved: list, top: int, left: int):
+# draw border around each finder
+def add_separators(matrix: list[list[int]], reserved: list[list[bool]]):
     size = len(matrix)
-    for r in range(-1, 8):
-        for c in range(-1, 8):
-            rr = top + r
-            cc = left + c
-            if 0 <= rr < size and 0 <= cc < size:
-                if 0 <= r <= 6 and 0 <= c <= 6:
-                    # finder pattern structure
-                    if r in [0, 6] or c in [0, 6] or (2 <= r <= 4 and 2 <= c <= 4):
-                        matrix[rr][cc] = 1  # black
-                    else:
-                        matrix[rr][cc] = 0  # white
-                else:
-                    # separator (white)
-                    matrix[rr][cc] = 0
-                reserved[rr][cc] = True
+    from patterns import get_finder_pattern_positions
+    for row, col in get_finder_pattern_positions(size):
+        for dr in range(-1, 8):
+            for dc in range(-1, 8):
+                r, c = row + dr, col + dc
+                if 0 <= r < size and 0 <= c < size and not reserved[r][c]:
+                    if dr in (-1, 7) or dc in (-1, 7):
+                        matrix[r][c] = 0
+                        reserved[r][c] = True
+
+# build a square pattern matrix
+def generate_pattern_matrix(outer_size: int, inner_size: int) -> list[list[int]]:
+    # init with 0s
+    m = [[0] * outer_size for _ in range(outer_size)]
+    # outer
+    for i in range(outer_size):
+        m[0][i] = 1
+        m[outer_size - 1][i] = 1
+        m[i][0] = 1
+        m[i][outer_size - 1] = 1
+    # inner
+    start = (outer_size - inner_size) // 2
+    end = start + inner_size
+    for i in range(start, end):
+        for j in range(start, end):
+            m[i][j] = 1
+    return m
 
 
-# add alignment patterns for v2
-def add_alignment_patterns(matrix: list, reserved: list, version: int):
-    size = len(matrix)
+# top left corners
+def get_finder_pattern_positions(size: int) -> list[tuple[int,int]]:
+
+    return [(0,0), (0, size - 7), (size - 7, 0)]
+
+
+# return top left corners 5x5
+def get_alignment_pattern_positions(version: int, size: int) -> list[tuple[int,int]]: 
     if version < 2:
-        return
-    centers = [6, size - 7]
-    for r in centers:
-        for c in centers:
-            # skip patterns overlapping finders at corners
-            if (r <= 6 and c <= 6) or (r <= 6 and c >= size-7) or (r >= size-7 and c <= 6):
+        return []
+    coords = [6, size - 7]
+    positions = []
+    for r in coords:
+        for c in coords:
+            if (r == 6 and c == 6) or (r == 6 and c == size-7) or (r == size-7 and c == 6):
                 continue
-            for dr in range(-2, 3):
-                for dc in range(-2, 3):
-                    rr = r + dr
-                    cc = c + dc
-                    if 0 <= rr < size and 0 <= cc < size:
-                        if abs(dr) == 2 or abs(dc) == 2 or (dr == 0 and dc == 0):
-                            matrix[rr][cc] = 1
-                        else:
-                            matrix[rr][cc] = 0
-                        reserved[rr][cc] = True
+            positions.append((r - 2, c - 2))
+    return positions
+
+
+# place small into big at each row/col in positions and marking as reserved
+def place_matrix_in_positions(
+        big: list[list[int]],
+        small: list[list[int]],
+        positions: list[tuple[int, int]],
+        reserved: list[list[bool]]
+) -> tuple[list[list[int]], list[list[bool]]]:
+    bh, bw = len(big), len(big[0])
+    sh, sw = len(small), len(small[0])
+    for (r, c) in positions:
+        if r+sh > bh or c+sw > bw:
+            continue
+        for dr in range(sh):
+            for dc in range(sw):
+                if not reserved[r+dr][c+dc]:
+                    big[r+dr][c+dc] = small[dr][dc]
+                    reserved[r+dr][c+dc] = True
+
+    return big, reserved
 
 
 # applies timing pattern after placing seperators
-def add_timing_pattern(matrix: list, reserved: list):
+def add_timing_pattern(matrix: list[list[int]], reserved: list[list[bool]]):
     size = len(matrix)
     for i in range(8, size - 8):
         if not reserved[6][i]:
@@ -55,7 +84,7 @@ def add_timing_pattern(matrix: list, reserved: list):
 
 
 # applies dark module after placing timing pattern
-def add_dark_module(matrix: list, reserved: list, version: int):
+def add_dark_module(matrix: list[list[int]], reserved: list[list[bool]], version: int):
     size = len(matrix)
     r = 8
     c = 4 * version + 9
@@ -65,7 +94,7 @@ def add_dark_module(matrix: list, reserved: list, version: int):
 
 
 # reserve area for format info
-def reserve_format_info(reserved: list):
+def reserve_format_info(reserved: list[list[bool]]):
     size = len(reserved)
     for i in range(9):
         reserved[8][i] = True
