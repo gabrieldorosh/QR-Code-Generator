@@ -11,7 +11,7 @@ from patterns import (
 
 # create empty QR matrix for given version with function patterns
 # calculates the size of qr code based on the version
-def initialize_matrix(version: int) -> tuple[list[list[int]], list[list[bool]]]:
+def initialise_matrix(version: int) -> tuple[list[list[int]], list[list[bool]]]:
     if version == 1:
         size = 21
     elif version == 2:
@@ -69,7 +69,7 @@ def place_data_bits(matrix: list[list[int]], reserved: list[list[bool]], bitstre
 
 # complete QR matrix with all function patterns and data bits
 def create_full_matrix(version: int, data_bits: str, ecc_bits: str) -> tuple[list[list[int]], list[list[bool]]]:
-    matrix, reserved = initialize_matrix(version)
+    matrix, reserved = initialise_matrix(version)
     full_bits = data_bits + ecc_bits
     place_data_bits(matrix, reserved, full_bits)
 

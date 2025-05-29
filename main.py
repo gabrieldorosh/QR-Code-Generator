@@ -24,7 +24,7 @@
 import argparse
 
 from encoding import generate_codewords
-from matrix import create_full_matrix
+from matrix import initialise_matrix, place_data_bits
 from masking import apply_mask, calculate_penalty
 from image_utils import save_matrix_as_image
 
@@ -63,48 +63,61 @@ def get_format_info_bits(ec_level: str, mask_pattern: int) -> str:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate Version 1-L or 2-L QR code.")
+    parser = argparse.ArgumentParser(description="Generate QR codes with optional slideshow and customisation.")
     parser.add_argument("text", help="Text to encode (byte mode).")
-    parser.add_argument("--version", type=int, choices=[1, 2], default=1, 
-                        help="QR code version (1 or 2).")
+    parser.add_argument("--version", "-v", type=int, choices=[1, 2], default=None, 
+                        help="QR code version (auto if not set).")
     parser.add_argument("--output", "-o", default="qr_output.png",
                         help="Output PNG file name.")
+    parser.add_argument("--foreground", "-fg", default="#000000",
+                        help="Foreground colour in hex")
+    parser.add_argument("--background", "-bg", default="#ffffff",
+                        help="Background colour in hex")
+    parser.add_argument("--shape", "-s", choices=["square", "circle"], default="square",
+                        help="Module shape (square or circle).")
+    parser.add_argument("--pixel", "-p", type=int, default=10,
+                        help="Pixel size.")
+    parser.add_argument("--slideshow", "-sl", action="store_true",
+                        help="Show step by step slideshow of QR code generation.")
     args = parser.parse_args()
 
-    data = args.text
-    version = args.version
-    output_file = args.output
+    raw = args.text.encode('iso-8859-1', 'strict')
+    if args.version is None:
+        # auto detect version based on input length
+        if len(raw) <= 19:
+            version = 1
+        elif len(raw) <= 34:
+            version = 2
+        else:
+            raise ValueError("Input too long (max 34 bytes for version 2).")
+    else:
+        version = args.version
 
     # generate data and ECC codewords
-    data_codewords, ecc_codewords = generate_codewords(data, version)
+    data_codewords, ecc_codewords = generate_codewords(args.text, version)
+    bits = ''.join(format(b, '08b') for b in data_codewords + ecc_codewords)
 
-    # convert codewords to bit strings
-    data_bits = ''.join(format(b, '08b') for b in data_codewords)
-    ecc_bits = ''.join(format(b, '08b') for b in ecc_codewords)
+    matrix, reserved = initialise_matrix(version)
+    if args.slideshow:
+        save_matrix_as_image(matrix, f"step0_patterns.png", args.pixel)
+    place_data_bits(matrix, reserved, bits)
+    if args.slideshow:
+        save_matrix_as_image(matrix, f"step1_data_bits,png", args.pixel)
 
-    # build the base QR matrix and place data bits
-    base_matrix, reserved = create_full_matrix(version, data_bits, ecc_bits)
+    best = min(
+        ((mask, apply_mask(matrix, reserved, mask), calculate_penalty(apply_mask(matrix, reserved, mask)))
+         for mask in range(8)), key=lambda x: x[2]
+    )
+    mask, matrix, _ = best
+    if args.slideshow:
+        save_matrix_as_image(matrix, f"step2_mask_{mask}.png", args.pixel)
 
-    # try all masks and pick the lowest penalty
-    best_mask = 0
-    best_matrix = None
-    lowest_penalty = float('inf')
-    for mask in range(8):
-        masked_matrix = apply_mask(base_matrix, reserved, mask)
-        penalty = calculate_penalty(masked_matrix)
-        if penalty < lowest_penalty:
-            lowest_penalty = penalty
-            best_mask = mask
-            best_matrix = masked_matrix
-
-    # place format information for the chosen mask
-    format_bits = get_format_info_bits('L', best_mask)
-
-    #map format bits to matrix positions
+    fmt = get_format_info_bits('L', mask)
     fmt_positions = [(8, i) for i in range(6)] + [(8, 7), (8, 8), (7, 8)] + [(i, 8) for i in range(5, -1, -1)]
     for idx, (r, c) in enumerate(fmt_positions):
-        best_matrix[r][c] = int(format_bits[idx])
+        matrix[r][c] = int(fmt[idx])
+    if args.slideshow:
+        save_matrix_as_image(matrix, f"step3_format.png", args.pixel)
 
-    # save the final QR code image
-    save_matrix_as_image(best_matrix, output_file)
-    print(f"QR code saved to {output_file} (version {version}, mask {best_mask}).")
+    save_matrix_as_image(matrix, args.output, args.pixel)
+    print(f"QR code saved to {args.output} (version {version}, mask {mask}).")
