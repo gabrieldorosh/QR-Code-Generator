@@ -33,7 +33,7 @@ INDEX_HTML = """
     </div>
     <form method="post" action="/generate">
         <label for="text">Enter text to encode:</label>
-        <input type="text" id="text" name="text" required maxlength="19" placeholder="Enter your message">
+        <input type="text" id="text" name="text" required placeholder="Enter your message">
         <label for="foreground_colour">Foreground Colour:</label>
         <input type="colour" id="foreground_colour" name="foreground_colour" value="#000000">
         <label for="background_colour">Background Colour:</label>
