@@ -18,7 +18,7 @@
 #
 # Arguments:
 #   text: The text to put in the QR code.
-#   --version: 1 or 2, default is 2
+#   --version: 1 or 2, default is 1
 #   --output: The output file name, default is 'qr.png'
 
 import argparse
