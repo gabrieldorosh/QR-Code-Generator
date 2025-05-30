@@ -86,8 +86,8 @@ def add_timing_pattern(matrix: list[list[int]], reserved: list[list[bool]]):
 # applies dark module after placing timing pattern
 def add_dark_module(matrix: list[list[int]], reserved: list[list[bool]], version: int):
     size = len(matrix)
-    r = 8
-    c = 4 * version + 9
+    c = 8
+    r = 4 * version + 9
     if 0 <= r < size and 0 <= c < size:
         matrix[r][c] = 1
         reserved[r][c] = True
