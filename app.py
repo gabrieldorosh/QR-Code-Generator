@@ -161,9 +161,9 @@ def generate():
     # second copy of format info (bottom-left & top-right)
     size = len(best_matrix)
     sec_fmt_positions = (
-        [(size-1 - i, 8) for i in range(7)]      # bits 0–6 down the col 8
-        + [(8, size-8)]                          # bit 7 at (8, size-8)
-        + [(8, size-7 + i) for i in range(7)]    # bits 8–14 along row 8
+        [(size-1 - i, 8) for i in range(7)]
+        + [(8, size-8)]
+        + [(8, size-7 + i) for i in range(7)]
     )
     for idx, (r, c) in enumerate(sec_fmt_positions):
         best_matrix[r][c] = int(format_bits[idx])
